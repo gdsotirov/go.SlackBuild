@@ -1,2 +1,2 @@
-glibc-solibs >= 2.13
-perl >= 5.12
+glibc-solibs >= 2.15
+perl >= 5.16
