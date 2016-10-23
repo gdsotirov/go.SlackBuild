@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Slackware build script for Google Go
-# Copyright (C) 2014 Georgi D. Sotirov <gdsotirov@dir.bg>
+# Copyright (C) 2014-2015 Georgi D. Sotirov <gdsotirov@dir.bg>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -19,13 +19,14 @@
 #
 # Visit SlackPack at http://sotirov-bg.net/slackpack/
 #
-# $Id: go.SlackBuild,v 1.4 2014/08/04 13:25:18 gsotirov Exp $
+# $Id: go.SlackBuild,v 1.5 2016/10/23 08:50:04 gsotirov Exp $
 #
 
 . ../../slack-package.conf
 
 NAME=go
-VERSION=1.2.2
+VERSION=1.5.4
+ARCH=${ARCH:-i486}
 BUILD=${BUILD:-1}
 
 TMP=${TMP:-/tmp}
@@ -35,13 +36,7 @@ if [ ! -e $TMP ]; then
   mkdir -p $TMP # location to build the source
 fi
 
-SRC=$TMP/$NAME-$VERSION
-if [ -e $SRC -a -d $SRC ]; then
-  echo "Source directory '$SRC' already exists! Plaese, move it or remove it."
-  exit 1
-fi
-
-PKG=$TMP/package-$NAME
+PKG=$TMP/package-${NAME}
 if [ -e $PKG -a -d $PKG ]; then
   echo "Package creation directory '$PKG' already exists! Please, move it or remove it."
   exit 2
@@ -49,52 +44,64 @@ fi
 
 # Extract the source
 cd $TMP
+export GOROOT="$PKG/usr/lib${LIBDIRSUFFIX}/${NAME}${VERSION}"
+mkdir -p $GOROOT
+cd $GOROOT
 tar -xvf $CWD/${NAME}${VERSION}.src.tar.gz || exit 3
-mv $NAME $NAME-$VERSION
-cd $SRC
 fix_source
 
-# Build
-cd $SRC/src
-GOROOT_FINAL="/usr/lib/$NAME" \
+# Need to have go toolchain installed (get binaries from https://golang.org/dl/)
+#export GOROOT_BOOTSTRAP="$HOME/go1.4"
+export GOROOT_FINAL="/usr/lib${LIBDIRSUFFIX}/${NAME}${VERSION}/${NAME}"
+
+# Build & install
+cd $GOROOT/go/src
 ./all.bash || exit 4
 
-# Install
-mkdir -p $PKG
-install -d -m 755 $PKG/usr
-cp -a $SRC/bin $PKG/usr
-install -d -m 755 $PKG/usr/lib/$NAME
-cp -a $SRC/pkg $PKG/usr/lib/$NAME
-cp -a $SRC/src $PKG/usr/lib/$NAME
-install -d -m 755 $PKG/usr/doc/$NAME-$VERSION/html
-cp -a $SRC/doc/* $PKG/usr/doc/$NAME-$VERSION/html
+# Create profile scripts to properly set env variables
+PROFILE_DIR=$PKG/etc/profile.d
+mkdir -p $PROFILE_DIR
+cat > $PROFILE_DIR/go.csh << EOF
+#!/bin/csh
+setenv GOROOT ${GOROOT_FINAL}
+setenv PATH \${GOROOT}/bin:\${PATH}
+EOF
+cat > $PROFILE_DIR/go.sh << EOF
+#!/bin/sh
+export GOROOT="${GOROOT_FINAL}"
+export PATH="\${GOROOT}/bin:\${PATH}"
+EOF
+
+chmod 0755 $PROFILE_DIR/go.csh
+chmod 0755 $PROFILE_DIR/go.sh
 
 # Prepare
 bin_perms $PKG
 ( cd $PKG; strip_bin )
-( cd $SRC; create_docs $PKG $NAME-$VERSION )
-( cd $PKG/usr/doc/$NAME-$VERSION; cp -a LICENSE COPYING )
+DOCFILES="$DOCFILES CONTRIB* PATENTS"
+( cd $GOROOT/go; create_docs $PKG ${NAME}-${VERSION} )
+( cd $PKG/usr/doc/${NAME}-${VERSION}; mv LICENSE COPYING; mv README.md README )
 
 mkdir -p $PKG/install
 install -m 644 $CWD/slack-desc     $PKG/install/slack-desc
 install -m 644 $CWD/slack-required $PKG/install/slack-required
 
-mkdir -p $PKG/usr/src/slackbuilds/$NAME-$VERSION
-install -m 644 $CWD/slack-desc       $PKG/usr/src/slackbuilds/$NAME-$VERSION/slack-desc
-install -m 644 $CWD/slack-required   $PKG/usr/src/slackbuilds/$NAME-$VERSION/slack-required
-install -m 644 $CWD/$NAME.SlackBuild $PKG/usr/src/slackbuilds/$NAME-$VERSION/$NAME.SlackBuild
+SBDIR=$PKG/usr/src/slackbuilds/${NAME}-${VERSION}
+mkdir -p $SBDIR
+install -m 644 $CWD/slack-desc         $SBDIR/slack-desc
+install -m 644 $CWD/slack-required     $SBDIR/slack-required
+install -m 644 $CWD/${NAME}.SlackBuild $SBDIR/${NAME}.SlackBuild
 
 # Assemble
 cd $PKG
-PKGNAME=$NAME-$VERSION-$ARCH-$BUILD$MYIN
-makepkg -l y -c n $PKG_DIR/$PKGNAME.txz
+PKGNAME=${NAME}-${VERSION}-${ARCH}-${BUILD}${MYIN}
+makepkg -l y -c n $PKG_DIR/${PKGNAME}.txz
 cd $PKG_DIR
-md5sum $PKGNAME.txz > $PKGNAME.txz.md5
-cat $PKG/install/slack-desc > $PKG_DIR/$PKGNAME.txt
+md5sum ${PKGNAME}.txz > ${PKGNAME}.txz.md5
+cat $PKG/install/slack-desc > $PKG_DIR/${PKGNAME}.txt
 
 # Cleanup
 if [ "$1" == "--cleanup" ]; then
-  rm -r $SRC
   rm -r $PKG
 fi
 
