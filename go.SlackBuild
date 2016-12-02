@@ -19,13 +19,13 @@
 #
 # Visit SlackPack at http://sotirov-bg.net/slackpack/
 #
-# $Id: go.SlackBuild,v 1.6 2016/10/23 10:05:43 gsotirov Exp $
+# $Id: go.SlackBuild,v 1.7 2016/12/02 08:06:21 gsotirov Exp $
 #
 
 . ../../slack-package.conf
 
 NAME=go
-VERSION=1.7.3
+VERSION=1.7.4
 ARCH=${ARCH:-i586}
 BUILD=${BUILD:-1}
 
@@ -50,6 +50,13 @@ cd $GOROOT
 tar -xvf $CWD/${NAME}${VERSION}.src.tar.gz || exit 3
 fix_source
 
+# Apply patch(es)
+if [ -e $CWD/${NAME}-${VERSION}.diff ]; then
+  cd go
+  patch -p1 -b -z.orig < $CWD/${NAME}-${VERSION}.diff || exit 4
+  cd ..
+fi
+
 # Use gcc-go compiler
 export GOROOT_BOOTSTRAP="/usr"
 export GOROOT_FINAL="/usr/lib${LIBDIRSUFFIX}/${NAME}${VERSION}/${NAME}"
@@ -57,11 +64,11 @@ export GOROOT_FINAL="/usr/lib${LIBDIRSUFFIX}/${NAME}${VERSION}/${NAME}"
 # Build & install
 cd $GOROOT/go/src
 CGO_ENABLED=1 \
-./all.bash || exit 4
+./all.bash || exit 5
 
 # Build shared lib
 GOROOT=${GOROOT}/go \
-$GOROOT/go/bin/go install -buildmode=shared -linkshared std
+$GOROOT/go/bin/go install -buildmode=shared -linkshared std || exit 6
 
 # Create profile scripts to properly set env variables
 PROFILE_DIR=$PKG/etc/profile.d
@@ -95,6 +102,9 @@ SBDIR=$PKG/usr/src/slackbuilds/${NAME}-${VERSION}
 mkdir -p $SBDIR
 install -m 644 $CWD/slack-desc         $SBDIR/slack-desc
 install -m 644 $CWD/slack-required     $SBDIR/slack-required
+if [ -e $CWD/${NAME}-${VERSION}.diff ]; then
+  install -m 644 $CWD/${NAME}-${VERSION}.diff $SBDIR/${NAME}-${VERSION}.diff
+fi
 install -m 644 $CWD/${NAME}.SlackBuild $SBDIR/${NAME}.SlackBuild
 
 # Assemble
