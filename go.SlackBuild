@@ -19,13 +19,13 @@
 #
 # Visit SlackPack at http://sotirov-bg.net/slackpack/
 #
-# $Id: go.SlackBuild,v 1.12 2017/09/23 16:22:56 gsotirov Exp $
+# $Id: go.SlackBuild,v 1.13 2017/10/08 10:44:58 gsotirov Exp $
 #
 
 . ../../slack-package.conf
 
 NAME=go
-VERSION=1.9
+VERSION=1.9.1
 ARCH=${ARCH:-i586}
 BUILD=${BUILD:-1}
 
