@@ -9,4 +9,4 @@ go: machine code yet has the convenience of garbage collection and the power
 go: of run-time reflection.  It's a fast, statically typed, compiled language
 go: that feels like a dynamically typed, interpreted language.
 go:
-go: Packaged by Georgi D. Sotirov <gdsotirov@dir.bg>
+go: Packaged by Georgi D. Sotirov <gdsotirov@gmail.com>
